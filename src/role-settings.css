@@ -1,0 +1,15 @@
+.role-settings{width:540px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);margin:auto;padding:22px;border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);box-shadow:0 20px 80px rgb(var(--surface-rgb) / 0.73);overflow-y:auto;font:13px Inter,system-ui,sans-serif}
+.role-settings::backdrop{background:rgb(var(--surface-rgb) / 0.73)}
+.role-settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.role-settings h2{font-size:17px;letter-spacing:1px;margin:0}
+.role-settings p{color:var(--muted);line-height:1.6}
+.role-settings button{background:var(--primary);color:var(--text);border:1px solid var(--border);border-radius:5px;min-width:34px;min-height:34px;padding:6px 10px;cursor:pointer;font:inherit}
+.role-settings button:disabled{opacity:.4;cursor:not-allowed}
+.role-settings button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.role-settings-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.role-settings-icon{font-size:24px;color:var(--gold);width:28px;text-align:center}
+.role-settings-name{flex:1;min-width:0}.role-settings-name small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.role-settings output{min-width:18px;text-align:center}
+.role-settings .role-settings-warning{color:var(--gold);min-height:22px}
+.role-settings-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+@media(max-width:420px){.role-settings{padding:14px}.role-settings h2{font-size:14px}.role-settings-row{gap:6px}.role-settings-name{font-size:12px}.role-settings-icon{width:22px;font-size:20px}}

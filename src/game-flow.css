@@ -1,0 +1,37 @@
+.engine-night-overlay{position:fixed;inset:0;z-index:1000;background:var(--surface);display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:auto;overflow:auto;overscroll-behavior:contain;padding:20px}
+.engine-night-overlay .engine-flow-card{width:560px;max-width:100%;max-height:100%;overflow-y:auto;flex-shrink:0;padding:22px}
+.engine-flow-card{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:76%;padding:18px;color:var(--muted)}
+.engine-flow-card h2{font:600 17px Cinzel,serif;letter-spacing:1px;margin:0}
+.engine-flow-card p{font-size:11px;line-height:1.65;margin:0;max-width:320px;color:var(--muted)}
+.engine-flow-card small{font-size:9px;line-height:1.5;color:var(--muted)}
+.engine-moon{font-size:44px;line-height:1;color:var(--moon)}
+.engine-countdown{font:600 22px Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--gold)}
+.engine-flow-card button{font:inherit;font-size:11px;max-width:100%;border:1px solid var(--hover);border-radius:5px;padding:9px 12px;color:var(--text);background:var(--primary);cursor:pointer}
+.engine-flow-card button:disabled{opacity:.4;cursor:not-allowed}
+.engine-flow-card button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.engine-flow-card .engine-offline{color:var(--gold)}
+.engine-day-panel{position:absolute;inset:14%;display:flex;align-items:center;justify-content:center;text-align:center}
+.engine-day-panel .engine-flow-card{max-width:100%;padding:4px;gap:6px}
+.engine-day-panel .engine-flow-card h2{font-size:13px}
+.engine-day-panel .engine-flow-card p{font-size:10px}
+.engine-day-panel .engine-flow-card small{font-size:8px}
+@media(max-height:700px){.engine-flow-card{gap:6px}.engine-moon{font-size:30px}.engine-flow-card p{font-size:10px}}
+.night-ability{width:100%;display:flex;flex-direction:column;gap:12px;text-align:left;font-size:12px}
+.night-ability fieldset{margin:0;padding:12px;border:1px solid var(--border);border-radius:6px;min-width:0}
+.night-ability legend{color:var(--gold);padding:0 5px}.night-ability label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.5}
+.night-ability select{display:block;width:100%;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font:inherit}
+.night-ability fieldset>p,.night-ability fieldset>label{margin:8px 0}
+.night-cupid-targets{display:grid;grid-template-columns:1fr 1fr;gap:8px}.night-cupid-targets label{min-width:0;overflow-wrap:anywhere}
+.night-ability input{accent-color:var(--hover)}.night-ability-buttons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.night-teammates{display:flex;flex-wrap:wrap;gap:6px}.night-teammates b,.night-teammates small{width:100%}.night-teammates span{padding:4px 7px;border:1px solid var(--border);border-radius:5px}
+.engine-flow-card .night-ability-error{color:var(--danger-text);max-width:100%}.engine-flow-card .night-private-note{color:var(--magic);border-top:1px solid var(--border);padding-top:8px;max-width:100%}
+.engine-flow-card .night-announcement{color:var(--gold)}.engine-day-panel .night-private-note{font-size:9px}
+@media(max-width:480px){.engine-night-overlay{padding:10px}.engine-night-overlay .engine-flow-card{padding:12px}.night-cupid-targets{grid-template-columns:1fr}}
+
+.day-actions {display:flex;flex-direction:column;gap:6px;align-items:center;max-width:100%;}
+.day-actions select {max-width:100%;background:var(--surface);color:var(--text);border:1px solid var(--gold);border-radius:5px;padding:5px;}
+.day-actions button {background:var(--primary);color:var(--text);border:1px solid var(--gold);border-radius:5px;padding:6px 10px;cursor:pointer;}
+.day-actions button:disabled {opacity:.45;cursor:default;}
+.day-candidate strong {color:var(--gold);font-size:17px;}
+.day-verdict-buttons {display:flex;gap:8px;}
+.engine-day-panel .engine-flow-card {max-height:100%;overflow:auto;}

@@ -1,0 +1,25 @@
+{
+  "name": "ma-soi-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "server": "node server.js",
+    "test": "node tests/run-tests.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server:test": "node dev/start-server.mjs",
+    "test:bots": "node tests/bots.test.mjs",
+    "test:game": "npm test && npm run test:bots"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}

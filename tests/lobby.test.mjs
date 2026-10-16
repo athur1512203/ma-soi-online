@@ -1,0 +1,93 @@
+import {scopedRequest} from './client-request.mjs';
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import { Server } from 'socket.io';
+import { io as clientIO } from 'socket.io-client';
+import { attachLobby } from '../lobby.js';
+
+const server = http.createServer(), io = new Server(server);
+const lobby = attachLobby(io, { reconnectMs: 250 });
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const url = `http://127.0.0.1:${server.address().port}`, clients = [];
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function connect(token) {
+  const socket = clientIO(url, { forceNew: true, transports: ['websocket'], reconnection: false, auth: { reconnectToken: token } });
+  clients.push(socket); socket.on('state', state => { socket.state = state; }); socket.on('session', session => { socket.session = session; });
+  await new Promise((resolve, reject) => { socket.once('connect', resolve); socket.once('connect_error', reject); });
+  await wait(10); return socket;
+}
+const emit = (socket, event, value) => new Promise((resolve, reject) => socket.timeout(2000).emit(event, scopedRequest(socket, event, value), (error, result) => error ? reject(error) : resolve(result)));
+try {
+  const host = await connect();
+  assert.equal(host.state, undefined, 'A connection alone must not occupy a seat');
+  assert.equal((await emit(host, 'room:create', { name: '<bad>' })).ok, false);
+  assert.equal(lobby.rooms.size, 0);
+  const created = await emit(host, 'room:create', { name: 'Host', isHost: false, seatIndex: 10 });
+  assert.match(created.roomCode, /^[A-Z0-9]{6}$/);
+  assert.equal(host.state.me.seatIndex, 0); assert.equal(host.state.me.isHost, true);
+  const room = lobby.rooms.get(created.roomCode);
+  assert.equal(room.status, 'waiting');
+  assert.equal((await emit(host, 'game:start')).ok, false);
+  const players = [host];
+  for (let i = 1; i < 12; i++) {
+    const socket = await connect(); players.push(socket);
+    assert.equal((await emit(socket, 'room:join', { name: `Player ${i}`, roomCode: created.roomCode, ready: true, seatIndex: 0, isHost: true })).ok, true);
+    assert.equal(socket.state.me.seatIndex, i); assert.equal(socket.state.me.ready, false); assert.equal(socket.state.me.isHost, false);
+  }
+  const outsider = await connect();
+  assert.equal((await emit(outsider, 'room:join', { name: 'Extra', roomCode: created.roomCode })).ok, false);
+  assert.equal((await emit(players[1], 'room:join', { name: 'Duplicate', roomCode: created.roomCode })).ok, false);
+  assert.equal((await emit(host, 'room:create', { name: 'Duplicate' })).ok, false);
+  assert.equal(room.players.length, 12);
+  assert.equal((await emit(players[1], 'room:start-request')).ok, false);
+  assert.equal((await emit(host, 'room:start-request')).ok, false);
+  assert.equal((await emit(host, 'room:ready', { ready: true })).ok, false);
+  assert.equal((await emit(players[1], 'room:ready', { ready: 'true' })).ok, false);
+  for (const socket of players.slice(1)) assert.equal((await emit(socket, 'room:ready', { ready: true, playerId: host.state.me.id })).ok, true);
+  await wait(20);
+  for (const socket of players) assert.equal(socket.state.players.filter(p => !p.isHost).every(p => p.ready), true);
+  assert.equal(host.state.canStart, true, 'Rules 01 start eligibility is retained before Rules 02 dealing');
+  assert.equal(room.status, 'waiting'); assert.equal(host.state.role, undefined, 'Public state must not carry secret roles');
+  assert.equal((await emit(host, 'phase:set', 'wolf').catch(() => ({ ok: false }))).ok, false);
+  assert.equal((await emit(players[1], 'room:ready', { ready: false })).ok, true);
+  assert.equal((await emit(host, 'room:start-request')).ok, false);
+  await emit(players[1], 'room:ready', { ready: true });
+  const token = players[2].session.reconnectToken, id = players[2].state.me.id;
+  assert.equal(JSON.stringify(host.state).includes(token), false);
+  players[2].disconnect(); await wait(20);
+  assert.equal(room.players.find(p => p.id === id).connected, false);
+  assert.equal((await emit(host, 'room:start-request')).ok, false);
+  const resumed = await connect(token);
+  assert.equal(resumed.state.me.id, id); assert.equal(resumed.state.me.seatIndex, 2);
+  const impostor = await connect('invalid-token'); assert.equal(impostor.state, undefined);
+  const duplicateSession = await connect(token); assert.equal(duplicateSession.state, undefined);
+  assert.equal(room.players.length, 12);
+  await emit(players[3], 'room:leave');
+  assert.equal((await emit(outsider, 'room:join', { name: 'Replacement', roomCode: created.roomCode.toLowerCase() })).ok, true);
+  assert.equal(outsider.state.me.seatIndex, 3);
+  await emit(host, 'room:leave');
+  assert.equal(room.hostId, players[1].state.me.id);
+  assert.equal((await emit(players[1], 'room:start-request')).ok, false, 'The replacement is not ready');
+  await emit(outsider, 'room:ready', { ready: true });
+  assert.equal(players[1].state.canStart, true);
+  resumed.disconnect(); await wait(300);
+  assert.equal(room.players.some(p => p.id === id), false);
+  assert.equal(lobby.rooms.size, 1, 'Canceled reconnect timer must not remove the entire room');
+  const second = await emit(host, 'room:create', { name: 'Another host' });
+  assert.notEqual(second.roomCode, created.roomCode);
+  assert.equal(host.state.players.length, 1);
+  await emit(host, 'room:leave'); assert.equal(lobby.rooms.has(second.roomCode), false);
+  const invalid = await connect();
+  for (const value of [null, [], {}, { name: 'Test', roomCode: '!' }, { name: 'Test', roomCode: second.roomCode }]) assert.equal((await emit(invalid, 'room:join', value)).ok, false);
+  room.status = 'playing';
+  assert.equal((await emit(invalid, 'room:join', { name: 'Test', roomCode: created.roomCode })).ok, false);
+  assert.equal((await emit(players[1], 'room:start-request')).ok, false);
+  room.status = 'waiting';
+  for (const socket of [...players.slice(1), outsider]) if (socket.connected && socket.state?.roomCode === created.roomCode) await emit(socket, 'room:leave');
+  assert.equal(lobby.rooms.size, 0); 
+  const expiring = await connect(); const last = await emit(expiring, 'room:create', { name: 'Timeout host' });
+  expiring.disconnect(); await wait(300); assert.equal(lobby.rooms.has(last.roomCode), false);
+  console.log('PASS: all 12 lobby scenarios, validation, room isolation, privacy, readiness and reconnect expiry');
+} finally {
+  clients.forEach(socket => socket.disconnect()); lobby.close(); await new Promise(resolve => io.close(resolve));
+}

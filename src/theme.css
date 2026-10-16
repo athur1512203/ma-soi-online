@@ -1,0 +1,33 @@
+/* Dark Forest Gothic — shared palette for all screens and portals. */
+:root {
+  --bg: #08130E;
+  --surface: #0D1E15;
+  --panel: #12291D;
+  --primary: #1E4930;
+  --hover: #397A50;
+  --border: #345540;
+  --gold: #C3A66C;
+  --text: #E8EDE5;
+  --on-hover: #FFFFFF;
+  --muted: #A4B5A8;
+  --danger: #A63D40;
+  --danger-text: #E5A4A4;
+  --shadow-solid: #000000;
+  --moon: #AAA5C0;
+  --magic: #C6B4C9;
+  --bg-rgb: 8 19 14;
+  --surface-rgb: 13 30 21;
+  --panel-rgb: 18 41 29;
+  --primary-rgb: 30 73 48;
+  --hover-rgb: 57 122 80;
+  --border-rgb: 52 85 64;
+  --gold-rgb: 195 166 108;
+  --text-rgb: 232 237 229;
+  --muted-rgb: 164 181 168;
+  --danger-rgb: 166 61 64;
+  --shadow-solid-rgb: 0 0 0;
+  --moon-rgb: 170 165 192;
+  --magic-rgb: 198 180 201;
+  --danger-text-rgb: 229 164 164;
+  --motion: 180ms ease;
+}

@@ -1,0 +1,40 @@
+# Dependencies and compiled output
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+.aws/
+.codex/
+.agents/
+
+# Logs and generated test output
+*.log
+bot-test-report.json
+.tmp-*
+
+# Unrelated local audio transcription tools, outputs and downloaded models
+.transcription-*/
+transcribe_audio.py
+transcript.txt
+transcript.segments.jsonl
+*.mp3
+*.wav
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
