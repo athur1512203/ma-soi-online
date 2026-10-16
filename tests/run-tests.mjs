@@ -1,3 +1,4 @@
+await import('./room-flow.test.mjs');
 await import('./create-room-client.test.mjs');
 await import('./create-room-sockets.test.mjs');
 import { spawn } from 'node:child_process';

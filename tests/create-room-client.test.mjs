@@ -42,3 +42,14 @@ for(const response of [{ok:false,error:'Phòng chưa sẵn sàng'},undefined,{ok
  const f=fixture();f.socket.emit=()=>{throw new Error('transport failed');};assert.equal(f.client.create('Host'),false);assert.deepEqual(f.pending,[true,false]);assert.match(f.messages.at(-1),/Không thể gửi/);f.client.dispose();
 }
 console.log('PASS: create-room frontend config, single in-flight request, validation, server errors, ack/snapshot order, timeout, disconnect and leave/retry');
+{
+ const f=fixture();for(let i=0;i<100;i++){f.client.join(' Guest ',' abc123 ');f.client.create('Race');}
+ assert.equal(f.requests.length,1);assert.equal(f.requests[0].event,'room:join');assert.deepEqual(f.requests[0].payload,{name:'Guest',roomCode:'ABC123'});
+ f.client.observe({me:{id:'guest'},roomCode:'ABC123'});assert.match(f.messages.at(-1),/Đã tham gia phòng/);assert.doesNotMatch(f.messages.at(-1),/chủ phòng/);f.client.dispose();
+}
+{
+ const f=fixture();for(const code of ['', 'ABC12','ABC!23','ABCDEFG'])assert.equal(f.client.join('Guest',code),false);
+ f.client.join('Guest','ABC123');f.requests[0].ack(null,{ok:false,error:'Phòng đã đủ 12 người.'});assert.match(f.messages.at(-1),/đủ 12/);assert.deepEqual(f.pending,[true,false]);
+ assert.equal(f.client.join('Guest','ABC123'),true);f.client.connectionLost();f.requests[1].ack(null,{ok:true,roomCode:'ABC123'});assert.deepEqual(f.codes,[]);f.client.dispose();
+}
+console.log('PASS: join normalization, validation, shared create/join lock, full-room error and stale ack');
