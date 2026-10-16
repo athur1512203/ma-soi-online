@@ -1,3 +1,5 @@
+await import('./create-room-client.test.mjs');
+await import('./create-room-sockets.test.mjs');
 import { spawn } from 'node:child_process';
 
 // Legacy gameplay suites remain preserved for a future gameplay engine.
