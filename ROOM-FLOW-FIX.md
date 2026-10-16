@@ -48,3 +48,20 @@ Re-run isolated tests with npm test. Opt-in production probe (PowerShell):
     $env:LIVE_SERVER_URL='https://ma-soi-backend.onrender.com'
     node tests/room-flow.test.mjs
     Remove-Item Env:LIVE_SERVER_URL
+
+## Follow-up: silent Join button on a fresh device
+
+Reproduction on the deployed Vercel build: a fresh client connected successfully; entering only a six-character room code left Join disabled and the status text at “Đã kết nối máy chủ.” The handler never ran because the button's disabled expression also required a nonempty display name. This establishes one concrete cause of the reported silent behavior; it does not establish that users who supplied valid names experienced the same issue.
+
+Fix: keep Join clickable for validation and connection feedback, disabling it only while a room request is pending. The existing controller rejects missing name, malformed code, offline socket or configuration errors without emitting a request. Empty names now receive an explicit request to enter a display name. The synchronous shared request lock, loading label, 10-second operation timeout, private reconnect token and authoritative lobby snapshots are preserved. No automatic create fallback is used.
+
+Additional evidence/tests:
+
+- Browser preview with the real Render URL: entering only a code and pressing Join now shows “Vui lòng nhập tên hiển thị trước khi tạo hoặc tham gia phòng.”
+- Real integration clients now record and assert the backend acknowledgment payload for successful join (ok:true and matching roomCode) and missing-room rejection (ok:false and the specific error).
+- New isolated Socket.IO failure tests deliberately withhold acknowledgment and disconnect the client mid-request. Loading unlocks, feedback appears and 100 repeated joins emit once.
+- Expanded frontend tests cover missing name/code, offline join, timeout/retry, stale acknowledgments and absence of create fallback.
+- npm test and npm run build with the production Render URL: PASS. The live multi-client suite on Render also PASS with polling, WebSocket, synchronized player IDs and reconnect.
+- Backend join handlers were reviewed: normal validation/membership/capacity/status failures return strings to the common request wrapper, which sends ok:false acknowledgment; success returns roomCode and receives ok:true acknowledgment. Backend was unchanged.
+
+Additional changed file: tests/join-failures.test.mjs. No CSS, seat geometry, game rules, animation, database or production bot configuration changes.

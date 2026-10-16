@@ -7,7 +7,8 @@ export function createRoomClient(socket,{onBusy=()=>{},onMessage=()=>{},onCode=(
     if(busy||member)return false;
     if(!socket.connected){onMessage('Chưa kết nối backend. Hãy chờ kết nối lại trước khi tạo phòng hoặc tham gia.');return false;}
     const name=typeof rawName==='string'?rawName.trim():'';
-    if(!name||name.length>32||/[<>\x00-\x1f\x7f]/.test(name)){onMessage('Tên hiển thị phải có 1–32 ký tự, không chứa ký tự điều khiển hoặc dấu < >.');return false;}
+    if(!name){onMessage('Vui lòng nhập tên hiển thị trước khi tạo hoặc tham gia phòng.');return false;}
+    if(name.length>32||/[<>\x00-\x1f\x7f]/.test(name)){onMessage('Tên hiển thị phải có 1–32 ký tự, không chứa ký tự điều khiển hoặc dấu < >.');return false;}
     const roomCode=typeof rawCode==='string'?rawCode.trim().toUpperCase():'';
     if(kind==='join'&&!/^[A-Z0-9]{6}$/.test(roomCode)){onMessage('Mã phòng phải gồm 6 ký tự chữ và số.');return false;}
     action=kind;const label=kind==='join'?'tham gia phòng':'tạo phòng';

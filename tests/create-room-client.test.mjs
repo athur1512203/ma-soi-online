@@ -53,3 +53,14 @@ console.log('PASS: create-room frontend config, single in-flight request, valida
  assert.equal(f.client.join('Guest','ABC123'),true);f.client.connectionLost();f.requests[1].ack(null,{ok:true,roomCode:'ABC123'});assert.deepEqual(f.codes,[]);f.client.dispose();
 }
 console.log('PASS: join normalization, validation, shared create/join lock, full-room error and stale ack');
+{
+ const f=fixture();assert.equal(f.client.join('','ABC123'),false);assert.match(f.messages.at(-1),/Vui lòng nhập tên/);assert.equal(f.requests.length,0);
+ assert.equal(f.client.join('Guest',''),false);assert.match(f.messages.at(-1),/Mã phòng/);assert.equal(f.requests.length,0);
+ f.socket.connected=false;assert.equal(f.client.join('Guest','ABC123'),false);assert.match(f.messages.at(-1),/Chưa kết nối/);assert.equal(f.requests.length,0);f.client.dispose();
+}
+{
+ const f=fixture();f.client.join('Guest','ABC123');f.clock.advance(100);assert.match(f.messages.at(-1),/chưa được xác nhận/);assert.deepEqual(f.pending,[true,false]);
+ assert.equal(f.requests.length,1);assert.equal(f.requests[0].event,'room:join');assert.equal(f.client.join('Guest','ABC123'),true);
+ f.requests[0].ack(null,{ok:true,roomCode:'ABC123'});assert.deepEqual(f.codes,[]);f.requests[1].ack(new Error('timeout'));assert.match(f.messages.at(-1),/Không nhận được phản hồi tham gia/);f.client.dispose();
+}
+console.log('PASS: missing-name/code join feedback, offline join, bounded join timeout, retry, no create fallback and stale ack');

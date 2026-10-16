@@ -1,3 +1,4 @@
+await import('./join-failures.test.mjs');
 await import('./room-flow.test.mjs');
 await import('./create-room-client.test.mjs');
 await import('./create-room-sockets.test.mjs');

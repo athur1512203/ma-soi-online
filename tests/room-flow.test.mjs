@@ -15,8 +15,9 @@ const clients=[];
 const until=async predicate=>{for(let i=0;i<200&&!predicate();i++)await new Promise(r=>setTimeout(r,25));assert.ok(predicate(),'Lobby snapshot did not converge');};
 async function client(transport){
  const s=connect(url,{autoConnect:false,forceNew:true,reconnection:false,transports:[transport],extraHeaders:{Origin:origin},timeout:60000,auth:{}});
- const item={s,state:null,token:null,messages:[],requests:0};clients.push(item);
- item.controller=createRoomClient(s,{onMessage:m=>item.messages.push(m)});
+ const item={s,state:null,token:null,messages:[],requests:0,acks:[]};clients.push(item);
+ const transportSocket={get connected(){return s.connected;},timeout(ms){return {emit(event,payload,ack){s.timeout(ms).emit(event,payload,(error,response)=>{item.acks.push({event,error:!!error,response});ack(error,response);});}};}};
+ item.controller=createRoomClient(transportSocket,{onMessage:m=>item.messages.push(m)});
  s.on('session',p=>{item.token=p.reconnectToken;item.state=p;item.controller.observe(p);});
  s.on('state',p=>{item.state=p;item.controller.observe(p);});
  s.on('disconnect',()=>item.controller.connectionLost());
@@ -33,6 +34,7 @@ try{
  const b=await client('websocket');
  for(let i=0;i<100;i++){b.controller.join('QA Join',` ${code.toLowerCase()} `);b.controller.create('Race');}
  await until(()=>a.state.players.length===2&&b.state?.players.length===2);
+ await until(()=>b.acks.some(a=>a.event==='room:join'));assert.equal(b.acks[0].error,false);assert.equal(b.acks[0].response.ok,true);assert.equal(b.acks[0].response.roomCode,code);
  assert.equal(b.requests,1);assert.match(b.messages.at(-1),/Đã tham gia phòng/);
  const c=await client('polling');c.controller.join('QA Third',code);
  await until(()=>clients.every(p=>p.state?.players.length===3));
@@ -51,6 +53,8 @@ try{
  c.controller.create('QA Temporary');await until(()=>c.state?.me?.name==='QA Temporary');const missing=c.state.roomCode;
  assert.equal((await emit(c,'room:leave')).ok,true);c.controller.observe({me:null});
  c.controller.join('Missing',missing);await until(()=>c.messages.some(m=>m.includes('Phòng không tồn tại')));
+ await until(()=>c.acks.some(a=>a.response?.error==='Phòng không tồn tại.'));
+ assert.equal(c.acks.at(-1).error,false);assert.equal(c.acks.at(-1).response.ok,false);
  assert.equal(c.state.me.name,'QA Temporary'); // No success snapshot for failed join.
  console.log(`PASS: ${live?'LIVE '+url:'local'} polling + WebSocket, create, 3 clients, identical players, leave, reconnect same id/seat, offline, invalid/missing room, 100-click create/join + cross-operation gate, production bot flags`);
 }finally{
