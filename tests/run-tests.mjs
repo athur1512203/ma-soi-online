@@ -12,6 +12,7 @@ await import('./day-sockets.test.mjs');
 await import('./game-result.test.mjs');
 await import('./rematch.test.mjs');
 await import('./bot-security.test.mjs');
+await import('./deployment.test.mjs');
 const tests=['cors.test.mjs'];
 const basePort=3210;
 const waitForServer=async url=>{for(let i=0;i<40;i++){try{const response=await fetch(url);if(response.ok)return;}catch{}await new Promise(resolve=>setTimeout(resolve,100));}throw new Error(`Server did not start at ${url}`);};

@@ -113,5 +113,5 @@ server.on('error', error => {
   console.error(`Không thể khởi động server: ${error.message}`);
   process.exitCode = 1;
 });
-server.listen(PORT,()=>console.log(`Ma Sói server running at http://localhost:${PORT}`));
+server.listen(PORT, '0.0.0.0', ()=>console.log(`Ma Sói server running at http://0.0.0.0:${PORT}`));
 
