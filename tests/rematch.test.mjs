@@ -47,7 +47,7 @@ try{
  for(const p of players){assert.equal(p.events.filter(e=>e.event==='game:finished').length,1);assert.deepEqual((await state(p)).result,result);for(const e of p.events.filter(e=>['state','room:updated','game:phase-changed','game:step-changed'].includes(e.event))){if((e.value.game?.phase||e.value.phase)!=='game_over')noRoles(e.value);}}
  const endedVersion=host.game.phaseVersion;clock.advance(1000);for(const cb of [...clock.callbacks])cb();assert.equal(engine.publicState().phaseVersion,endedVersion);assert.equal(clock.pendingCount,0);
  assert.equal((await act(villagers[0],'game:nominate',{targetId:host.state.me.id})).ok,false);
- assert.equal((await emit(outsider,'game:finished',{winner:'DRAW'})).ok,false);assert.equal((await emit(villagers[0],'game:rematch-request')).ok,false);
+ assert.equal((await emit(outsider,'game:finished',{winner:'DRAW'})).ok,false);assert.equal((await emit(players.find(p=>!p.state.me.isHost),'game:rematch-request')).ok,false);
  const hostToken=host.session.reconnectToken;host.disconnect();await wait(10);host=await connect(hostToken);assert.deepEqual((await state(host)).result,result);assert.equal(host.state.me.isHost,true);assert.equal(host.events.filter(e=>e.event==='game:finished').length,0,'Reconnect receives snapshot, not another finish event');
  const before=room.players.map(p=>({id:p.id,seatIndex:p.seatIndex})), savedAssignments=room.roleAssignments;
  const oldReady={gameId:originalId,ready:true}, oldVote={gameId:originalId,phaseVersion:nominationVersion,targetId:idiot.state.me.id};

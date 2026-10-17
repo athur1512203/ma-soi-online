@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ROLES, defaultRoleConfig, validateRoleConfig } from '../shared/roles.js';
 import './role-settings.css';
+import TimeSettings from './TimeSettings.jsx';
 
-export default function RoleSettings({ config, playerCount, isHost, waiting, connected, onSave, onClose }) {
+export default function RoleSettings({ timeConfig, onSaveTime, config, playerCount, isHost, waiting, connected, onSave, onClose }) {
   const dialog = useRef(null);
   const [draft, setDraft] = useState(config);
   const [dirty, setDirty] = useState(false);
@@ -36,6 +37,7 @@ export default function RoleSettings({ config, playerCount, isHost, waiting, con
       <output aria-label={`Số thẻ ${role.name}`}>{draft?.[role.id] || 0}</output>
       <button type="button" disabled={!editable || draft?.[role.id] >= role.max} aria-label={`Tăng ${role.name}`} onClick={() => change(role.id, 1)}>+</button>
     </div>)}</div>
+    <TimeSettings config={timeConfig} editable={editable} isHost={isHost} waiting={waiting} onSave={onSaveTime} />
     <p className="role-settings-warning" role="status">{error || validation || (dirty ? 'Cấu hình chưa lưu.' : 'Bộ thẻ hợp lệ.')}</p>
     {isHost && waiting && <div className="role-settings-actions"><button data-tone="secondary" type="button" disabled={!editable} onClick={() => { setDraft(defaultRoleConfig(playerCount)); setDirty(true); setError(''); }}>Khôi phục mặc định</button><button type="button" disabled={!editable || !!validation} onClick={save}>{saving ? 'Đang lưu…' : 'Lưu cấu hình'}</button></div>}
   </dialog>;

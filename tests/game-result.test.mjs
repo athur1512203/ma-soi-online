@@ -21,7 +21,7 @@ for(const [w,v,winner] of cases) {
  assert.equal(checkWinner(w,v),winner);
  // Dead original wolves must not affect the outcome.
  const f=fixture([...Array(w).fill('werewolf'),...Array(v).fill('villager'),'werewolf'],[w+v]);
- assertNoRoles(f.state());assertNoRoles(f.engine.privateState(f.players[0]));
+ assertNoRoles(f.state());const {assignment,...privateState}=f.engine.privateState(f.players[0]);assertNoRoles(privateState);assert.equal(assignment.originalRole,f.room.roleAssignments.get(f.players[0].id));
  if(winner==='CONTINUE'){f.at('day_discussion');assert.equal(f.state().result,null);}else{
   f.at('game_over');assert.equal(f.state().result.winner,winner);assert.equal(f.state().result.aliveWolves,w);assert.equal(f.state().result.aliveVillagers,v);
   assert.equal(f.clock.pendingCount,0);assert.equal(f.changes.filter(c=>c.finished).length,1);

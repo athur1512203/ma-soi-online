@@ -39,7 +39,7 @@ function assertPublic(value) {
 }
 try {
   const twelve = defaultRoleConfig(12);
-  assert.deepEqual(twelve, { werewolf: 3, villager: 2, seer: 1, witch: 1, guard: 1, hunter: 1, cupid: 1, elder: 1, idiot: 1 });
+  assert.deepEqual(twelve, { werewolf: 3, villager: 2, seer: 1, witch: 1, guard: 1, hunter: 1, cupid: 1, elder: 1, idiot: 1, angel:0, white_wolf:0, cursed_wolf:0, wolf_dog:0, wild_child:0 });
   assert.equal(ROLES.find(role => role.id === 'cupid').team, 'village');
   const { host, players, room, roomCode } = await group(6);
   const config = { ...defaultRoleConfig(6), witch: 0, guard: 1 };

@@ -32,7 +32,7 @@ async function group() {
     const p = await connect(); players.push(p);
     await emit(p, 'room:join', { name: `Player${i}`, roomCode }); await emit(p, 'room:ready', { ready: true });
   }
-  const config = { werewolf: 2, villager: 1, seer: 1, witch: 1, guard: 1, cupid: 1, hunter: 1, elder: 0, idiot: 0 };
+  const config = { angel:0,white_wolf:0,cursed_wolf:0,wolf_dog:0,wild_child:0,werewolf: 2, villager: 1, seer: 1, witch: 1, guard: 1, cupid: 1, hunter: 1, elder: 0, idiot: 0 };
   assert.equal((await emit(host, 'roles:config:update', { config })).ok, true);
   assert.equal((await emit(host, 'game:start')).ok, true);
   return { players, host, roomCode, room: lobby.rooms.get(roomCode) };
@@ -71,6 +71,7 @@ try {
   const stable = a.room.engine.publicState(), oldRole = spectator.role, token = spectator.session.reconnectToken;
   spectator.disconnect(); await wait(20);
   const resumed = await connect(token);
+  if(spectator===a.host)a.host=resumed; // Random dealing can make the Host the disconnected spectator.
   assert.equal(resumed.game.phaseVersion, stable.phaseVersion); assert.equal(resumed.game.stepEndsAt, stable.stepEndsAt);
   assert.deepEqual(resumed.role, oldRole); assert.equal(resumed.game.actionStep, null);
   assert.equal(clock.pendingCount, 2, 'Reconnect must not add engine timers');

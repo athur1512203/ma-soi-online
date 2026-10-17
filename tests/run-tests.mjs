@@ -1,3 +1,5 @@
+await import('./extended-roles.test.mjs');
+await import('./time-settings.test.mjs');
 await import('./join-failures.test.mjs');
 await import('./room-flow.test.mjs');
 await import('./create-room-client.test.mjs');

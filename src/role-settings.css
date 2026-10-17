@@ -13,3 +13,10 @@
 .role-settings .role-settings-warning{color:var(--gold);min-height:22px}
 .role-settings-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 @media(max-width:420px){.role-settings{padding:14px}.role-settings h2{font-size:14px}.role-settings-row{gap:6px}.role-settings-name{font-size:12px}.role-settings-icon{width:22px;font-size:20px}}
+
+.time-settings { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: .75rem; }
+.time-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: .6rem 0; }
+.time-settings-row small { display: block; color: var(--muted); }
+.time-settings-row input { width: 6rem; min-width: 0; }
+
+.time-settings-row input { background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:.5rem; }

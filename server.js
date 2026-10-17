@@ -26,7 +26,7 @@ const server = http.createServer((req,res)=>{
   const headers = {'content-type':'application/json'};
   if (origin && isAllowedOrigin(origin)) headers['access-control-allow-origin'] = origin;
   res.writeHead(200, headers);
-  res.end(JSON.stringify({ok:true,service:'ma-soi-server'}));
+  res.end(JSON.stringify({ok:true,service:'ma-soi-server',revision:process.env.RENDER_GIT_COMMIT||null,features:['extended-roles','room-time-config']}));
 });
 const io = new Server(server,{
   cors:{origin:(origin,callback)=>callback(null,isAllowedOrigin(origin)),credentials:true},

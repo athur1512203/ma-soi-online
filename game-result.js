@@ -1,6 +1,6 @@
 // The role catalog keeps its historical "wolves" team; match results use the
 // canonical Rules 06 team ID without changing role dealing or night abilities.
-export const teamForRole = role => role === 'werewolf' ? 'werewolf' : 'village';
+export const teamForRole = role => ['werewolf','white_wolf','cursed_wolf'].includes(role) ? 'werewolf' : 'village';
 
 export function checkWinner(aliveWolves, aliveVillagers) {
   if (aliveWolves === 0 && aliveVillagers === 0) return 'DRAW';

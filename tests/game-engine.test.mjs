@@ -17,8 +17,8 @@ function fixture(roles = ['cupid', 'guard', 'seer', 'werewolf', 'werewolf', 'wit
 
 assert.throws(() => gameDurations({ seer: 0 }));
 assert.throws(() => gameDurations({ unknown: 1 }));
-assert.deepEqual(nightSteps(1), ['cupid', 'lovers_notice', 'guard', 'seer', 'werewolf', 'witch']);
-assert.deepEqual(nightSteps(2), ['guard', 'seer', 'werewolf', 'witch']);
+assert.deepEqual(nightSteps(1), ['wolf_dog','wild_child','cupid','lovers_notice','guard','seer','werewolf','cursed_wolf','white_wolf','witch']);
+assert.deepEqual(nightSteps(2), ['guard','seer','werewolf','cursed_wolf','witch']);
 
 const f = fixture();
 assert.equal(f.engine.start(), true); assert.equal(f.engine.start(), false);

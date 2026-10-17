@@ -4,15 +4,16 @@ export default function NightAction({ game, connected, expired, onSubmit, onSkip
   const { ability } = game;
   const [chosen, setChosen] = useState(ability.selected?.targetIds || []);
   const [targetId, setTargetId] = useState(ability.selected?.targetId || '');
+  const [choice,setChoice]=useState('');
   const [save, setSave] = useState(false);
   const [poison, setPoison] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const disabled = !connected || expired || busy || !ability.canSubmit;
-  const valid = ability.type === 'cupid' ? chosen.length === 2 : ability.type === 'witch' ? true : !!targetId;
-  const labels = { cupid: 'Xác nhận ghép đôi', guard: 'Xác nhận bảo vệ', seer: 'Soi', werewolf: game.hasCompleted ? 'Đổi phiếu' : 'Xác nhận mục tiêu', witch: 'Xác nhận hành động' };
+  const valid = ability.type === 'wolf_dog' ? !!choice : ability.type === 'cupid' ? chosen.length === 2 : ability.type === 'witch' ? true : !!targetId;
+  const labels = { cupid: 'Xác nhận ghép đôi', guard: 'Xác nhận bảo vệ', seer: 'Soi', werewolf: game.hasCompleted ? 'Đổi phiếu' : 'Xác nhận mục tiêu', witch: 'Xác nhận hành động', wolf_dog:'Xác nhận phe', wild_child:'Chọn cha nuôi', white_wolf:'Loại Sói', cursed_wolf:'Kích hoạt lời nguyền' };
   async function submit(event) {
     event.preventDefault(); if (disabled || !valid) return;
-    const payload = ability.type === 'cupid' ? { targetIds: chosen }
+    const payload = ability.type === 'wolf_dog' ? {choice} : ability.type === 'cupid' ? { targetIds: chosen }
       : ability.type === 'witch' ? { save, poisonTargetId: poison || null } : { targetId };
     setBusy(true); setError('');
     try { const response = await onSubmit({ phaseVersion: game.phaseVersion, ...payload }); if (!response.ok) setError(response.error); }
@@ -21,7 +22,7 @@ export default function NightAction({ game, connected, expired, onSubmit, onSkip
   }
   return <form data-ability={ability.type} className="night-ability" onSubmit={submit}>
     {ability.teammates && <div className="night-teammates"><b>Đồng đội Ma Sói</b>{ability.teammates.map(p => <span key={p.id}>{p.name} · {p.hasSelected ? 'Đã chọn' : 'Chưa chọn'}{!p.connected && ' · Mất kết nối'}</span>)}<small>Có thể đổi phiếu khi lượt còn mở. Hòa phiếu sẽ không có mục tiêu.</small></div>}
-    {ability.type === 'cupid' ? <fieldset disabled={disabled}><legend>Chọn đúng hai người</legend><div className="night-cupid-targets">{ability.targets.map(p => <label key={p.id}><input type="checkbox" checked={chosen.includes(p.id)} disabled={!chosen.includes(p.id) && chosen.length === 2} onChange={() => setChosen(current => current.includes(p.id) ? current.filter(id => id !== p.id) : [...current, p.id])} />{p.name}</label>)}</div><p>Đã chọn: {chosen.map(id => ability.targets.find(p => p.id === id)?.name).join(' và ') || 'Chưa chọn'}</p></fieldset>
+    {ability.type === 'wolf_dog' ? <label>Chọn phe một lần<select aria-label="Phe Chó Săn" disabled={disabled} value={choice} onChange={e=>setChoice(e.target.value)}><option value="">Chọn phe</option><option value="wolves">Thức dậy cùng Sói</option><option value="village">Tiếp tục ngủ — Dân Làng</option></select></label> : ability.type === 'cupid' ? <fieldset disabled={disabled}><legend>Chọn đúng hai người</legend><div className="night-cupid-targets">{ability.targets.map(p => <label key={p.id}><input type="checkbox" checked={chosen.includes(p.id)} disabled={!chosen.includes(p.id) && chosen.length === 2} onChange={() => setChosen(current => current.includes(p.id) ? current.filter(id => id !== p.id) : [...current, p.id])} />{p.name}</label>)}</div><p>Đã chọn: {chosen.map(id => ability.targets.find(p => p.id === id)?.name).join(' và ') || 'Chưa chọn'}</p></fieldset>
       : ability.type === 'witch' ? <fieldset disabled={disabled}><legend>Hai bình thuốc</legend><p>Bình cứu: {ability.potions.save ? 'Còn' : 'Đã hết'} · Bình độc: {ability.potions.poison ? 'Còn' : 'Đã hết'}</p><p>Mục tiêu Sói: {ability.victim?.name || 'Không có'}</p><label><input type="checkbox" checked={save} disabled={!ability.canSave} onChange={e => setSave(e.target.checked)} />Dùng bình cứu{ability.victim ? ` cho ${ability.victim.name}` : ''}</label><label>Mục tiêu bình độc<select aria-label="Mục tiêu bình độc" value={poison} disabled={!ability.canPoison} onChange={e => setPoison(e.target.value)}><option value="">Không dùng bình độc</option>{ability.targets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label><small>Có thể dùng cả hai bình cùng đêm. Chỉ được tự cứu đêm đầu.</small></fieldset>
       : <label>Mục tiêu<select aria-label="Mục tiêu kỹ năng" disabled={disabled} value={targetId} onChange={e => setTargetId(e.target.value)}><option value="">Chọn người chơi</option>{ability.targets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
     {error && <p role="alert" className="night-ability-error">{error}</p>}

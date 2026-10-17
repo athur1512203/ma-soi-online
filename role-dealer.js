@@ -1,8 +1,9 @@
+import {ownAssignment} from './role-state.js';
 import { randomInt } from 'node:crypto';
 import { ROLES } from './shared/roles.js';
 
 export function dealRoles(config, players) {
-  const deck = ROLES.flatMap(role => Array(config[role.id]).fill(role.id));
+  const deck = ROLES.flatMap(role => Array(config[role.id]??0).fill(role.id));
   for (let i = deck.length - 1; i > 0; i--) {
     const j = randomInt(i + 1);
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -11,6 +12,7 @@ export function dealRoles(config, players) {
 }
 
 export function privateRole(room, playerId) {
+  if(room.roleStates){const a=ownAssignment(room,playerId);return a?{role:a.role,team:a.team}:null;}
   const id = room.roleAssignments?.get(playerId);
   const role = ROLES.find(role => role.id === id);
   return role ? { role: role.id, team: role.team } : null;

@@ -4,7 +4,7 @@ import NightAction from './NightAction.jsx';
 import './game-flow.css';
 
 export const isNight = phase => ['night_start', 'night_actions', 'night_resolve'].includes(phase);
-const stepNames = { cupid: 'Cupid', guard: 'Bảo Vệ', seer: 'Tiên Tri', werewolf: 'Ma Sói', witch: 'Phù Thủy' };
+const stepNames = { cupid: 'Cupid', guard: 'Bảo Vệ', seer: 'Tiên Tri', werewolf: 'Ma Sói', witch: 'Phù Thủy', wolf_dog:'Chó Săn', wild_child:'Cậu Bé', cursed_wolf:'Sói Nguyền', white_wolf:'Sói Trắng' };
 
 export default function GameFlow({ game, connected, onComplete, onAbility, onDayAction }) {
   const [now, setNow] = useState(Date.now());

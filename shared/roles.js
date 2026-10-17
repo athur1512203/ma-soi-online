@@ -9,6 +9,11 @@ export const ROLES = Object.freeze([
   { id: 'cupid', name: 'Cupid', team: 'village', teamName: 'Dân', max: 1, icon: '♡', description: 'Người se duyên, thuộc phe Dân trong V1.0.' },
   { id: 'elder', name: 'Già Làng', team: 'village', teamName: 'Dân', max: 1, icon: '♙', description: 'Bậc trưởng lão giàu kinh nghiệm của ngôi làng.' },
   { id: 'idiot', name: 'Kẻ Ngốc', team: 'village', teamName: 'Dân', max: 1, icon: '☆', description: 'Một dân làng với thân phận đặc biệt.' },
+  {id:'angel',name:'Thiên Thần',team:'independent',teamName:'Độc lập',max:1,icon:'♧',description:'Thắng riêng nếu bị treo cổ hợp lệ ngày đầu; sau ngày đầu trở thành Dân Làng.'},
+  {id:'white_wolf',name:'Sói Trắng',team:'wolves',teamName:'Sói',max:1,icon:'♜',description:'Tham gia đàn Sói; đêm lẻ có thể loại một Sói khác. Thắng riêng khi phe Sói thắng và chỉ còn mình là Sói.'},
+  {id:'cursed_wolf',name:'Sói Nguyền',team:'wolves',teamName:'Sói',max:1,icon:'☽',description:'Một lần biến mục tiêu bị đàn Sói cắn thành Sói, giữ kỹ năng gốc, nếu đòn cắn có hiệu lực.'},
+  {id:'wolf_dog',name:'Chó Săn',team:'village',teamName:'Dân',max:1,icon:'♞',description:'Đêm đầu chọn theo phe Sói hoặc Dân. Không chọn mặc định theo Dân.'},
+  {id:'wild_child',name:'Cậu Bé',team:'village',teamName:'Dân',max:1,icon:'♙',description:'Chọn cha nuôi đêm đầu. Khi cha nuôi chết, chuyển sang phe Sói.'},
 ].map(Object.freeze));
 
 export function defaultRoleConfig(playerCount) {
@@ -24,12 +29,13 @@ export function validateRoleConfig(config, count) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) return 'Cấu hình bộ thẻ không hợp lệ.';
   if (Object.keys(config).some(id => !ROLES.some(role => role.id === id))) return 'Có ID vai trò không được hỗ trợ.';
   for (const role of ROLES) {
-    const value = config[role.id];
+    const value = config[role.id] === undefined && ['angel','white_wolf','cursed_wolf','wolf_dog','wild_child'].includes(role.id) ? 0 : config[role.id];
     if (!Number.isSafeInteger(value) || value < 0) return `Số thẻ ${role.name} phải là số nguyên không âm.`;
     if (value > role.max) return `${role.name} chỉ được tối đa ${role.max} lá.`;
   }
-  if (config.werewolf < 1) return 'Bộ thẻ phải có ít nhất 1 Ma Sói.';
-  if (config.werewolf * 2 >= count) return 'Số Ma Sói phải nhỏ hơn một nửa số người.';
+  const wolves = ['werewolf','white_wolf','cursed_wolf'].reduce((n,id)=>n+(config[id]??0),0);
+  if (wolves < 1) return 'Bộ thẻ phải có ít nhất 1 Ma Sói.';
+  if (wolves * 2 >= count) return 'Số Ma Sói phải nhỏ hơn một nửa số người.';
   if (Object.values(config).reduce((sum, value) => sum + value, 0) !== count) return 'Tổng số thẻ phải bằng số người trong phòng.';
   return null;
 }

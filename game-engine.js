@@ -1,11 +1,14 @@
+import {currentRoleFor,factionFor,ownAssignment,stateFor} from './role-state.js';
 import { randomUUID } from 'node:crypto';
-import { checkWinner, teamForRole, winnerReasons } from './game-result.js';
+import { checkWinner, winnerReasons } from './game-result.js';
 import { gameDurations } from './game-config.js';
 import { createNightAbilities } from './night-abilities.js';
 
-export const nightSteps = nightNumber => nightNumber === 1
-  ? ['cupid', 'lovers_notice', 'guard', 'seer', 'werewolf', 'witch']
-  : ['guard', 'seer', 'werewolf', 'witch'];
+export const nightSteps = nightNumber => [
+  ...(nightNumber === 1 ? ['wolf_dog', 'wild_child', 'cupid', 'lovers_notice'] : []),
+  'guard', 'seer', 'werewolf', 'cursed_wolf',
+  ...(nightNumber % 2 === 1 ? ['white_wolf'] : []), 'witch',
+];
 
 // Each engine owns its flow and private ability state; sockets remain in lobby.js.
 export function createGameEngine(room, { durations, onChange = () => {}, clock = { now: Date.now, setTimeout, clearTimeout } } = {}) {
@@ -14,18 +17,21 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
   let phase = null, currentStep = null, nightNumber = 0, dayNumber = 0, phaseVersion = room.phaseSerial || 0;
   let stepStartedAt = null, stepEndsAt = null;
   const gameId = room.gameId || randomUUID();
-  let result = null;
+  let result = null, angelWinner=null;
   const roster = room.players.map(p => ({player:p, id:p.id, name:p.name, seatIndex:p.seatIndex, role:room.roleAssignments.get(p.id)}));
   const completed = new Set();
   function finishIfDecided() {
     if (disposed || result || hunters.length || lastWords.length) return !!result;
     const living = room.players.filter(p => p.alive !== false);
-    const wolves = living.filter(p => teamForRole(room.roleAssignments.get(p.id)) === 'werewolf').length;
-    const winner = checkWinner(wolves, living.length - wolves);
+    const wolves = living.filter(p => factionFor(room,p) === 'wolves').length;
+    let winner = angelWinner ? 'ANGEL_WIN' : checkWinner(wolves, living.length - wolves);
+    const white=living.find(p=>currentRoleFor(room,p)==='white_wolf'&&factionFor(room,p)==='wolves');
+    if(winner==='WEREWOLF_WIN'&&wolves===1&&white)winner='WHITE_WOLF_WIN';
     if (winner === 'CONTINUE') return false;
-    result = {gameId, winner, reason:winnerReasons[winner], endedAt:clock.now(), dayNumber, nightNumber,
+    result = {gameId, winner, reason:winner==='ANGEL_WIN'?'first_day_execution':winner==='WHITE_WOLF_WIN'?'sole_wolf_controls_village':winnerReasons[winner], endedAt:clock.now(), dayNumber, nightNumber,
       aliveWolves:wolves, aliveVillagers:living.length-wolves,
-      players:roster.map(({player,...p}) => ({...p,team:teamForRole(p.role),alive:room.players.includes(player) && player.alive !== false}))};
+      winnerIds:roster.filter(({player,id})=>winner==='ANGEL_WIN'?id===angelWinner:winner==='WHITE_WOLF_WIN'?id===white.id:winner==='DRAW'?false:winner==='WEREWOLF_WIN'?factionFor(room,player)==='wolves':factionFor(room,player)==='village').map(p=>p.id),
+      players:roster.map(({player,...p}) => ({...p,originalRole:p.role,currentRole:currentRoleFor(room,p.id),currentFaction:factionFor(room,p.id),team:factionFor(room,p.id)==='wolves'?'werewolf':factionFor(room,p.id),alive:room.players.includes(player) && player.alive !== false}))};
     room.status = 'finished'; speaker = null;
     enter('game_over', null, null, {finished:result});
     return true;
@@ -48,7 +54,7 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
     for (const death of abilities.drainDeaths()) {
       const p = room.players.find(p => p.id === death.id);
       if (!p) continue;
-      if (room.roleAssignments.get(p.id) === 'hunter' && !death.poisoned && !hunterUsed.has(p.id)) { hunterUsed.add(p.id); hunters.push(p.id); }
+      if (room.roleAssignments.get(p.id) === 'hunter' && !death.poisoned && !hunterUsed.has(p.id)) { hunterUsed.add(p.id);stateFor(room,p).abilityUsage.hunter=1; hunters.push(p.id); }
       if (daytime && !lastWords.includes(p.id)) lastWords.push(p.id);
     }
   }
@@ -94,7 +100,7 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
     let survived = false, eliminated = [];
     if (approved) {
       if (room.roleAssignments.get(candidate.id) === 'idiot' && !idiotUsed.has(candidate.id)) { idiotUsed.add(candidate.id); lostVote.add(candidate.id); survived = true; }
-      else eliminated = abilities.eliminate([candidate.id], 'execution');
+      else {if(dayNumber===1&&currentRoleFor(room,candidate)==='angel')angelWinner=candidate.id;eliminated = abilities.eliminate([candidate.id], 'execution');}
     }
     verdict = {decision: approved ? 'EXECUTE' : 'PARDON', execute, pardon, valid:execute+pardon, survived, eliminated,
       message: approved ? survived ? candidate.name + ' sống sót và mất quyền bỏ phiếu.' : candidate.name + ' bị treo cổ.' : 'Tha cho ' + (candidate?.name || 'ứng viên') + '.'};
@@ -109,7 +115,7 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
   const canChat = player => room.players.includes(player) && player.connected && inTime() && (phase === 'day_discussion' && alive(player) || phase === 'defense' && candidate?.id === player.id && alive(player) || phase === 'last_words' && speaker?.id === player.id);
   const publicState = () => ({ roomCode: room.code, gameId, result, phase, nightNumber, dayNumber, phaseVersion, stepStartedAt, stepEndsAt, serverNow: clock.now(), abilitiesImplemented: true, awaitingDayResolution: false, candidate: identity(candidate), nominationRound, runoffCandidates: runoff ? room.players.filter(p => runoff.includes(p.id)).map(identity) : [], dayResult: verdict, speaker: identity(speaker), announcement: dayNumber === nightNumber ? announcement : null });
   function privateState(player) {
-    const ownsTurn = !disposed && actionStep() && alive(player) && player.connected && room.roleAssignments.get(player.id) === currentStep;
+    const ownsTurn = !disposed && actionStep() && alive(player) && player.connected && abilities.canAct(player, currentStep);
     const hasCompleted = ownsTurn && completed.has(player.id);
     return { ...publicState(), dayAction: {
       canNominate: phase === 'nomination_vote' && inTime() && player.connected && eligible(player) && !nominations.has(player.id),
@@ -120,16 +126,16 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
       canShoot: phase === 'triggered_abilities' && inTime() && player.connected && speaker?.id === player.id,
       canEndLastWords: phase === 'last_words' && inTime() && player.connected && speaker?.id === player.id,
       votingRight: !lostVote.has(player.id),
-    }, actionStep: ownsTurn ? currentStep : null, canComplete: ownsTurn && !hasCompleted && clock.now() < stepEndsAt, hasCompleted, canPublicChat: canChat(player), ability: ownsTurn ? abilities.abilityFor(player, currentStep, hasCompleted) : null, ...abilities.privateExtras(player) };
+    }, assignment:ownAssignment(room,player.id), actionStep: ownsTurn ? currentStep : null, canComplete: ownsTurn && !hasCompleted && clock.now() < stepEndsAt, hasCompleted, canPublicChat: canChat(player), ability: ownsTurn ? abilities.abilityFor(player, currentStep, hasCompleted) : null, ...abilities.privateExtras(player) };
   }
   function enter(nextPhase, step, duration, events = {}) {
     if (disposed || (phase === 'game_over')) return;
     clock.clearTimeout(timer); timer = null;
     const previousPhase = phase;
     phase = nextPhase; currentStep = step; phaseVersion++; room.phaseSerial = phaseVersion;
-    completed.clear(); stepStartedAt = clock.now(); stepEndsAt = duration ? stepStartedAt + duration : null;
+    completed.clear(); stepStartedAt = clock.now(); stepEndsAt = duration !== null && duration !== undefined ? stepStartedAt + duration : null;
     const version = phaseVersion;
-    if (duration) {
+    if (duration !== null && duration !== undefined) {
       timer = clock.setTimeout(() => {
         if (!disposed && version === phaseVersion) { timer = null; advance(); }
       }, duration);
@@ -167,7 +173,7 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
       case 'nomination_vote': return closeNomination();
       case 'defense': judgments.clear(); return enter('execution_vote', null, timing.execution_vote);
       case 'execution_vote': return closeExecution();
-      case 'day_result': return aftermath('next_night');
+      case 'day_result': if(dayNumber===1&&!angelWinner)abilities.endFirstDay();return aftermath('next_night');
       case 'triggered_abilities': case 'last_words': return aftermath();
       case 'next_night': return beginNight();
     }
@@ -176,7 +182,7 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
     if (disposed || !started) return 'Trận chưa sẵn sàng.';
     if (!Number.isSafeInteger(version) || version !== phaseVersion) return 'Yêu cầu thuộc lượt cũ hoặc không hợp lệ.';
     if (!actionStep() || clock.now() >= stepEndsAt) return 'Lượt đã kết thúc hoặc không có lượt để xác nhận.';
-    if (!room.players.includes(player) || !alive(player) || !player.connected || room.roleAssignments.get(player.id) !== currentStep) return 'Bạn không có quyền xác nhận lượt này.';
+    if (!room.players.includes(player) || !alive(player) || !player.connected || !abilities.canAct(player,currentStep)) return 'Bạn không có quyền xác nhận lượt này.';
     return null;
   }
   function finishAction(player) {
@@ -229,6 +235,7 @@ export function createGameEngine(room, { durations, onChange = () => {}, clock =
       finishAction(player); return result;
     },
     participantsChanged() {
+      abilities.refreshFactions();
       if (disposed || !actionStep()) return;
       if (actors().every(p => completed.has(p.id))) advance();
     },

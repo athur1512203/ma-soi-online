@@ -1,3 +1,4 @@
+import {defaultTimeConfig,validateTimeConfig,timeDurations} from './shared/time-settings.js';
 import {testDurations,localTestSocket} from './dev/test-config.js';
 import crypto from 'node:crypto';
 import { defaultRoleConfig, validateRoleConfig, ROLES } from './shared/roles.js';
@@ -11,7 +12,7 @@ export function attachLobby(io, { reconnectMs = Number(process.env.LOBBY_RECONNE
   const allowDevTest = devTest && process.env.NODE_ENV !== 'production';
   const rooms = new Map(), sessions = new Map();
   const publicPlayer = p => ({ id: p.id, name: p.name, seatIndex: p.seatIndex, ready: p.ready, connected: p.connected, alive: p.alive !== false, isHost: p.room.hostId === p.id });
-  const configState = room => ({ roleConfig: { ...room.roleConfig }, roleConfigCustomized: room.roleConfigCustomized, roleConfigError: validateRoleConfig(room.roleConfig, room.players.length), playerCount: room.players.length });
+  const configState = room => ({ roleConfig: { ...room.roleConfig }, roleConfigCustomized: room.roleConfigCustomized, timeConfig:{...room.timeConfig}, roleConfigError: validateRoleConfig(room.roleConfig, room.players.length), playerCount: room.players.length });
   const refreshDefault = room => { if (room.status === 'waiting' && !room.roleConfigCustomized) room.roleConfig = defaultRoleConfig(room.players.length); };
   const startReason = room => room.status !== 'waiting' || room.roleAssignments ? 'Phòng đã bắt đầu trận.' : room.players.length < 6 ? 'Cần ít nhất 6 người chơi.' : room.players.some(p => p.id !== room.hostId && !p.ready) ? 'Tất cả người chơi thường phải sẵn sàng.' : room.players.some(p => !p.connected) ? 'Hãy chờ người chơi kết nối lại.' : validateRoleConfig(room.roleConfig, room.players.length);
   // Both state events are safe to expose: assignments only travel in private events.
@@ -53,7 +54,7 @@ export function attachLobby(io, { reconnectMs = Number(process.env.LOBBY_RECONNE
         if (typeof value === 'function' && ack === undefined) { ack = value; value = undefined; }
         const p = socket.data.lobbyPlayer;
         const matchAction = ['game:step-complete','game:ability:submit','game:nominate','game:defense:end','game:execution:vote','game:hunter:shoot','game:last-words:end','game:rematch-request','chat:public'].includes(event);
-        const lobbyMutation = ['room:ready','room:start-request','game:start','roles:config:update','room:leave'].includes(event);
+        const lobbyMutation = ['room:ready','room:start-request','game:start','roles:config:update','time:config:update','room:leave'].includes(event);
         if (p && (matchAction || lobbyMutation && p.room.gameVersion > 1) && (!validObject(value) || value.gameId !== p.room.gameId)) return fail(ack, 'Yêu cầu thiếu mã trận hiện tại hoặc thuộc trận cũ.', 'game:error');
         const error = handler(value, p);
         if (typeof error === 'string') return fail(ack, error, event === 'game:ability:submit' ? 'game:ability:error' : event.startsWith('roles:') ? 'roles:config:error' : event.startsWith('game:') || event.startsWith('phase:') || event.startsWith('night:') || event.startsWith('seer:') || event.startsWith('witch:') || event.startsWith('vote:') || event === 'chat:wolf' ? 'game:error' : 'room:error');
@@ -71,7 +72,7 @@ export function attachLobby(io, { reconnectMs = Number(process.env.LOBBY_RECONNE
       if (p) return 'Bạn đang ở trong một phòng.';
       if (!validObject(value) || !validName(value.name)) return 'Tên hiển thị phải có 1–32 ký tự hợp lệ.';
       let code; do { code = Array.from({ length: 6 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[crypto.randomInt(36)]).join(''); } while (rooms.has(code));
-      const room = { code, gameId:crypto.randomUUID(), gameVersion:1, phaseSerial:0, status: 'waiting', hostId: null, players: [], publicChat: [], engine: null, roleConfig: defaultRoleConfig(6), roleConfigCustomized: false, roleAssignments: null }; rooms.set(code, room);
+      const room = { code, gameId:crypto.randomUUID(), gameVersion:1, phaseSerial:0, status: 'waiting', hostId: null, players: [], publicChat: [], engine: null, roleConfig: defaultRoleConfig(6), roleConfigCustomized: false, roleAssignments: null, roleStates:null, timeConfig:defaultTimeConfig() }; rooms.set(code, room);
       return enter(room, value.name);
     });
     request('room:join', (value, p) => {
@@ -102,10 +103,17 @@ export function attachLobby(io, { reconnectMs = Number(process.env.LOBBY_RECONNE
       if (!validObject(value)) return 'Cấu hình bộ thẻ không hợp lệ.';
       const error = validateRoleConfig(value.config, p.room.players.length); if (error) return error;
       // Copy only the validated, supported keys. Never accept role assignments.
-      p.room.roleConfig = Object.fromEntries(ROLES.map(role => [role.id, value.config[role.id]]));
+      p.room.roleConfig = Object.fromEntries(ROLES.map(role => [role.id, value.config[role.id]??0]));
       p.room.roleConfigCustomized = true;
       for (const member of p.room.players) member.socket?.emit('roles:config:updated', configState(p.room));
       sync(p.room); return configState(p.room);
+    });
+    request('time:config:update',(value,p)=>{
+      if(!p||p.room.hostId!==p.id)return 'Chỉ Host được chỉnh thời gian.';
+      if(p.room.status!=='waiting')return 'Cài đặt thời gian đã khóa khi trận bắt đầu.';
+      if(!validObject(value)||Object.keys(value).some(k=>!['config','gameId'].includes(k)))return 'Payload thời gian không hợp lệ.';
+      const error=validateTimeConfig(value.config);if(error)return error;
+      p.room.timeConfig={...value.config};sync(p.room);return {timeConfig:{...p.room.timeConfig}};
     });
     if (allowDevTest) request('dev:test:configure', (value,p) => {
       if (!p || p.room.hostId !== p.id || !localTestSocket(socket)) return 'Chỉ Host localhost được cấu hình phòng test.';
@@ -122,7 +130,7 @@ export function attachLobby(io, { reconnectMs = Number(process.env.LOBBY_RECONNE
       room.roleAssignments = dealRoles(room.roleConfig, room.players);
       room.status = 'playing';
       for (const member of room.players) member.socket.emit('game:role-assigned', privateRole(room, member.id));
-      room.engine = createGameEngine(room, { durations: room.testTiming || timing, clock: engineClock, onChange: change => {
+      room.engine = createGameEngine(room, { durations: {...timing,...timeDurations(room.timeConfig),...durations,...room.testTiming}, clock: engineClock, onChange: change => {
         sync(room);
         if (change.finished) for (const member of room.players) member.socket?.emit('game:finished', change.finished);
         if (change.nightResolved) for (const member of room.players) if (member.socket) {
@@ -144,7 +152,7 @@ export function attachLobby(io, { reconnectMs = Number(process.env.LOBBY_RECONNE
       const room = p.room;
       if (Object.keys(value).some(key => key !== 'gameId')) return 'Yêu cầu chơi lại không hợp lệ.';
       if (room.status !== 'finished' || room.engine?.publicState().phase !== 'game_over') return 'Chỉ được chơi lại khi trận đã kết thúc.';
-      room.engine.dispose(); room.engine = null; room.roleAssignments = null;
+      room.engine.dispose(); room.engine = null; room.roleAssignments = null; room.roleStates=null;
       room.status = 'waiting'; room.gameId = crypto.randomUUID(); room.gameVersion++;
       room.publicChat = [];
       for (const member of room.players) { member.alive = true; member.ready = false; }
