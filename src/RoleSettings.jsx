@@ -14,7 +14,7 @@ export default function RoleSettings({ timeConfig, onSaveTime, config, playerCou
   useEffect(() => { if (!dirty || !isHost || !waiting) setDraft(config); }, [config, dirty, isHost, waiting]);
   const validation = validateRoleConfig(draft, playerCount);
   const total = Object.values(draft || {}).reduce((sum, value) => sum + value, 0);
-  function change(id, amount) { setDraft(current => ({ ...current, [id]: current[id] + amount })); setDirty(true); setError(''); }
+  function change(id, amount) { setDraft(current => ({ ...current, [id]: (current[id] || 0) + amount })); setDirty(true); setError(''); }
   async function save() {
     if (!editable || validation) return;
     setSaving(true); setError('');

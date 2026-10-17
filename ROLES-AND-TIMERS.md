@@ -57,3 +57,11 @@ Thêm: role-state.js; shared/time-settings.js; src/TimeSettings.jsx; tests/exten
 Sửa: shared/roles.js; role-dealer.js; night-abilities.js; game-engine.js; game-result.js; game-config.js; lobby.js; server.js (health revision/capabilities để xác minh deploy); dev/test-config.js (chỉ cập nhật thời gian các lượt mới trong chế độ dev hiện có); src/main.jsx; src/RoleSettings.jsx; src/role-settings.css; src/NightAction.jsx; src/GameFlow.jsx; src/GameResult.jsx; tests/roles.test.mjs; tests/game-engine.test.mjs; tests/game-flow.test.mjs; tests/game-result.test.mjs; tests/rematch.test.mjs; tests/run-tests.mjs.
 
 Health backend công khai trả revision từ RENDER_GIT_COMMIT và các feature extended-roles/room-time-config; không chứa secrets. Chỉ xác nhận deploy backend khi endpoint trả đúng commit mới. Vercel có thể xác minh status commit và hash bundle đang phục vụ. Không thay đổi env production trong nhiệm vụ này.
+
+## Kiểm tra rollout ngày 17/10/2026
+
+Vercel đã báo thành công cho commit bổ sung vai trò/timer. Render public health vẫn trả dạng cũ chỉ có ok/service, chưa có revision/features; vì vậy chưa xác nhận backend mới hoạt động trên production. Dashboard Render chuyển đến trang đăng nhập, không có phiên quản trị trong môi trường này.
+
+Bước thủ công còn lại: vào service ma-soi-backend trên Render, xác nhận repository athur1512203/ma-soi-online và branch main, chọn Manual Deploy → Deploy latest commit. Build npm ci --omit=dev, start npm run server như cấu hình hiện có. Không bật bot hoặc timer test. Sau deploy, GET https://ma-soi-backend.onrender.com/ phải trả revision khớp commit main và features gồm extended-roles, room-time-config. Nếu deploy lỗi, xem log build/start trong Render; chưa có log riêng này trong phiên kiểm tra.
+
+Frontend cũng xử lý bộ thẻ cũ thiếu khóa vai trò mới như số lượng 0, tránh NaN khi nhấn tăng thẻ trong lúc backend/frontend đang cập nhật lệch phiên bản. Backend cũ vẫn chưa hỗ trợ lưu các vai trò/thời gian mới; phải hoàn tất deploy backend để dùng đầy đủ tính năng.
